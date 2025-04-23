@@ -6,16 +6,19 @@ import { PageLoadingSpinner } from '../../components/LoadingSpinner';
 
 interface Delivery {
   id: string;
-  product: {
-    title: string;
-    price: number;
-  };
-  buyer: {
-    name: string;
-    email: string;
-    address: string;
-  };
+  productName: string;
+  buyerName: string;
+  address: string;
   status: 'pending' | 'in-progress' | 'delivered';
+  createdAt: string;
+}
+
+interface DashboardResponse {
+  status: 'success' | 'error';
+  data?: {
+    deliveries: Delivery[];
+  };
+  message?: string;
 }
 
 export default function RiderDashboard() {
@@ -29,7 +32,7 @@ export default function RiderDashboard() {
       try {
         setLoading(true);
         setError(null);
-        const response = await getDashboard('rider');
+        const response = await getDashboard('rider') as DashboardResponse;
         if (response.status === 'success' && response.data) {
           setDeliveries(response.data.deliveries || []);
         }
@@ -64,6 +67,22 @@ export default function RiderDashboard() {
     return <PageLoadingSpinner />;
   }
 
+  if (loading) {
+    return <PageLoadingSpinner />;
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="p-4">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -76,68 +95,38 @@ export default function RiderDashboard() {
           </div>
         </div>
 
-        {loading ? (
-          <PageLoadingSpinner />
-        ) : error ? (
-          <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-            <p>{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-2 text-sm font-medium text-red-600 hover:text-red-500"
+        <div className="grid gap-4">
+          {deliveries.map((delivery) => (
+            <div
+              key={delivery.id}
+              className="bg-white p-4 rounded-lg shadow"
             >
-              Try again
-            </button>
-          </div>
-        ) : (
-          <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Your Deliveries</h2>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold">{delivery.productName}</h3>
+                  <p className="text-gray-600">Buyer: {delivery.buyerName}</p>
+                  <p className="text-gray-600">Address: {delivery.address}</p>
+                </div>
+                <span className={`px-2 py-1 rounded text-sm ${
+                  delivery.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  delivery.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  {delivery.status}
+                </span>
+              </div>
+              <div className="mt-2 text-sm text-gray-500">
+                Created: {new Date(delivery.createdAt).toLocaleDateString()}
+              </div>
             </div>
-
-            {deliveries.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <h3 className="text-gray-500 text-lg">No deliveries available</h3>
-                <p className="mt-1 text-sm text-gray-400">
-                  New delivery requests will appear here
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {deliveries.map((delivery) => (
-                  <div key={delivery.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-medium text-gray-900 truncate">
-                          {delivery.product.title}
-                        </h3>
-                        <p className="mt-1 text-gray-600">
-                          Price: ${delivery.product.price.toFixed(2)}
-                        </p>
-                        <div className="mt-2">
-                          <p className="text-sm text-gray-600">
-                            Buyer: {delivery.buyer.name}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Address: {delivery.buyer.address}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-4 md:mt-0 md:ml-6">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          delivery.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                          delivery.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {delivery.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          ))}
+          
+          {deliveries.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No deliveries assigned yet
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   );
